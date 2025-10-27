@@ -14,7 +14,7 @@
 
 #include "mdldec.h"
 
-void CMDLDecompiler::LogMessage (int type, char *msg, ...)
+void CMDLDecompiler::LogMessage (int type, const char *msg, ...)
 {
 	va_list argptr;
 	va_start (argptr,msg);

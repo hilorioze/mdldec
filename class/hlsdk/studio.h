@@ -145,7 +145,11 @@ typedef struct
 #define CACHE_USER
 typedef struct cache_user_s
 {
-	void *data;
+#if defined(_WIN64) || defined(__LP64__)
+	int					data;
+#else
+	void					*data;
+#endif
 } cache_user_t;
 #endif
 

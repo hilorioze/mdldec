@@ -7,6 +7,8 @@
 ==============================================================
 */
 
+#include <errno.h>
+#include <ctype.h>
 
 #include "mdldec.h"
 
@@ -15,8 +17,9 @@ CMDLDecompiler::CMDLDecompiler()
 {
 
 	int i;
-	strset(ModelName,0);
-	strset(DestPath,0);
+	memset(ModelName, 0, sizeof(ModelName));
+	memset(DestPath, 0, sizeof(DestPath));
+	memset(ModelPath, 0, sizeof(ModelPath));
 
 	ModelLoaded = false;
 	CoreFile = NULL;
@@ -58,7 +61,7 @@ CMDLDecompiler::~CMDLDecompiler()
 }
 
 bool CMDLDecompiler::LoadModel( char *modelname )
-{ 
+{
 	// This function loads the modeldata. This can be up to a lot of files (32 sequence
 	// files, 1 core file and 1 additional texturefile) The memory allocated for these
 	// files are stored separately in memoryancher pointers. All pointers in the
@@ -77,8 +80,12 @@ bool CMDLDecompiler::LoadModel( char *modelname )
 	if ( DestPath[0] )
 	{
 		char	*ofs, c;
-		if ((DestPath [strlen(DestPath)-1] != '/') || (DestPath [strlen(DestPath)-1] != '\\')) 
-			strcat(DestPath, "\\");
+		size_t length = strlen(DestPath);
+		if (length > 0 && DestPath[length - 1] != '/' && DestPath[length - 1] != '\\')
+		{
+			DestPath[length] = PATH_SEPARATOR;
+			DestPath[length + 1] = 0;
+		}
 
 		for (ofs = DestPath ; *ofs ; ofs++)
 		{
@@ -88,7 +95,7 @@ bool CMDLDecompiler::LoadModel( char *modelname )
 				*ofs = 0;
 				if (_mkdir (DestPath) == -1)
 				{
-					if (errno != 17 ) //EEXIST 
+					if (errno != EEXIST )
 					{
 						LogMessage (MDLDEC_MSG_ERROR , "ERROR: Couln't create %s\r\n", DestPath);
 						return false;
@@ -102,6 +109,42 @@ bool CMDLDecompiler::LoadModel( char *modelname )
 	{
 		MyExtractFilePath( modelname, DestPath);
 	}
+
+	strncpy(ModelPath, modelname, sizeof(ModelPath) - 1);
+	ModelPath[sizeof(ModelPath) - 1] = '\0';
+
+	// capture base model name for downstream file generation
+	const char *filename = modelname;
+	const char *forward = strrchr(modelname, '/');
+	const char *backward = strrchr(modelname, '\\');
+	if (forward || backward)
+	{
+		const char *sep = forward;
+		if (!sep || (backward && backward > sep))
+		{
+			sep = backward;
+		}
+		filename = sep + 1;
+	}
+	// trim optional .mdl suffix (case-insensitive)
+	size_t baseLength = strlen(filename);
+	if (baseLength >= 4)
+	{
+		size_t extStart = baseLength - 4;
+		if (filename[extStart] == '.' &&
+		    tolower((unsigned char)filename[extStart + 1]) == 'm' &&
+		    tolower((unsigned char)filename[extStart + 2]) == 'd' &&
+		    tolower((unsigned char)filename[extStart + 3]) == 'l')
+		{
+			baseLength = extStart;
+		}
+	}
+	if (baseLength >= sizeof(ModelName))
+	{
+		baseLength = sizeof(ModelName) - 1;
+	}
+	memcpy(ModelName, filename, baseLength);
+	ModelName[baseLength] = '\0';
 
 	// load core file
 	if( (fp = fopen( modelname, "rb" )) == NULL)
@@ -252,25 +295,6 @@ void CMDLDecompiler::DumpInfo()
 	fprintf (modelinfo,"transitionindex: %i\n",phdr->transitionindex);
 
 	fclose(modelinfo);
-
-}
-
-void CMDLDecompiler::GetModelName()
-{
-	char *src;
-	char *pname;
-	int	 c;
-
-	c=0;
-	pname = (char *)m_pstudiohdr->name;
-	src = pname + strlen(pname) - 1;
-	while (src != pname && !(*(src-1) == '\\' || *(src-1) == '/'))
-	{
-		src--;	// back up until a \ or the start
-		c++;
-	};
-
-	strncpy(ModelName,src,c-3);
 
 }
 

@@ -8,13 +8,11 @@
 */
 
 
-#define WIN32_LEAN_AND_MEAN 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <malloc.h>
-#include <windows.h>
-#include "..\class\mdldec.h"
+#include "../class/mdldec.h"
 
 int main(int argc, char *argv[])
 {
@@ -26,7 +24,7 @@ int main(int argc, char *argv[])
 
 	if (argc == 1)
 	{
-		printf("Usage: mdldec.exe <path\\mdlfile.mdl> [<destpath>]\n");
+		printf("Usage: mdldec <path%cmdlfile.mdl> [<destpath>]\n", PATH_SEPARATOR);
 		printf("--------------------------------------------------\n");
 	
 		return 1;

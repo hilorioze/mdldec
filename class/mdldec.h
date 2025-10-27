@@ -19,30 +19,98 @@
 typedef unsigned char byte;
 //
 
-#define WIN32_LEAN_AND_MEAN 
-
-#ifdef MDLDEC_MS3DPLUGIN
-
-#include "..\plugin\stdafx.h"
-#include "..\plugin\DlgLog.h"
-#include "..\plugin\msPlugInImpl.h"
-
-#else
-
-#include <windows.h>
-
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <malloc.h>
+
+#ifdef MDLDEC_MS3DPLUGIN
+
+#include "../plugin/stdafx.h"
+#include "../plugin/DlgLog.h"
+#include "../plugin/msPlugInImpl.h"
+
+#else
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <direct.h>
+#else
+#include <limits.h>
+#include <stdint.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#ifndef _MAX_PATH
+#define _MAX_PATH PATH_MAX
+#endif
+
+typedef uint8_t BYTE;
+typedef uint16_t WORD;
+typedef uint32_t DWORD;
+typedef int32_t LONG;
+typedef uint32_t ULONG;
+
+typedef struct __attribute__((packed))
+{
+    WORD bfType;
+    DWORD bfSize;
+    WORD bfReserved1;
+    WORD bfReserved2;
+    DWORD bfOffBits;
+} BITMAPFILEHEADER;
+
+typedef struct __attribute__((packed))
+{
+    DWORD biSize;
+    LONG biWidth;
+    LONG biHeight;
+    WORD biPlanes;
+    WORD biBitCount;
+    DWORD biCompression;
+    DWORD biSizeImage;
+    LONG biXPelsPerMeter;
+    LONG biYPelsPerMeter;
+    DWORD biClrUsed;
+    DWORD biClrImportant;
+} BITMAPINFOHEADER;
+
+typedef struct __attribute__((packed))
+{
+    BYTE rgbBlue;
+    BYTE rgbGreen;
+    BYTE rgbRed;
+    BYTE rgbReserved;
+} RGBQUAD;
+
+#ifndef BI_RGB
+#define BI_RGB 0L
+#endif
+
+#ifndef MAKEWORD
+#define MAKEWORD(a, b) ((WORD)(((BYTE)(a)) | ((WORD)((BYTE)(b))) << 8))
+#endif
+
+#define _mkdir(path) mkdir(path, 0755)
+
+#endif
+
+#endif
+
+#ifndef PATH_SEPARATOR
+#ifdef _WIN32
+#define PATH_SEPARATOR '\\'
+#else
+#define PATH_SEPARATOR '/'
+#endif
+#endif
 
 
-#include ".\hlsdk\mathlib.h"
-#include ".\hlsdk\studio.h"
-#include ".\hlsdk\activity.h"
+#include "./hlsdk/mathlib.h"
+#include "./hlsdk/studio.h"
+#include "./hlsdk/activity.h"
 
 
 #define MDLDEC_VERSION				'1.01'
@@ -69,7 +137,7 @@ public:
 	void					SMD_GenerateSequences();
 	void					BMP_GenerateTextures();
 	void					FixRepeatedSequenceNames();	
-	void					LogMessage ( int type, char *msg, ...);
+	void					LogMessage ( int type, const char *msg, ...);
 
 #ifdef MDLDEC_MS3DPLUGIN
 	DlgLog					*pLogDialog; //hack
@@ -80,6 +148,7 @@ private:
 
 	bool					ModelLoaded;
 	char					ModelName[64];
+	char					ModelPath[_MAX_PATH];
 
 	FILE					*qcfile;
 
@@ -108,7 +177,6 @@ private:
 	void					SMD_WriteTriangle(FILE *smd, mstudiomodel_t *pmodel, mstudiotexture_t *ptexture, short *pA, short *pB, short *pC);
 	void					SMD_WriteFrame(FILE *smd, int frame, mstudioanim_t *panim, mstudioseqdesc_t *pseqdesc);
 
-	void					GetModelName();
 	void					BMP_WriteTexture(byte *pBitData, byte *pColorData, char *TextureName, mstudiotexture_t *pTexture);
 	float					g_bonetransform[MAXSTUDIOBONES][3][4];	// bone transformation matrix
 	float					g_normtransform[MAXSTUDIOBONES][3][4];
